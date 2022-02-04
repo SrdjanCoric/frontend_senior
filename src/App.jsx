@@ -11,6 +11,7 @@ import {
 import { makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import React, { useEffect, useState } from "react";
+import uuid from "react-uuid";
 
 const useStyles = makeStyles({
   root: {
@@ -93,24 +94,22 @@ function App() {
   const [projects, setProjects] = useState([]);
   const [projectName, setProjectName] = useState("");
   const [status, setStatus] = useState("");
-  // const [sortedField, setSortedField] = useState<string>("");
-  // let sortedProjects = [...projects];
+  const [page, setPage] = useState(1);
 
   const classes = useStyles();
 
   const fixData = (data) => {
     let result = [];
+    console.log("data", data);
     data.forEach((p) => {
       let newProject = { ...p };
-      if (newProject.projectNamee) {
-        newProject.projectName = newProject.projectNamee;
-        delete newProject.projectNamee;
-      } else if (newProject.projectName === "Hudson, Moore and Kub") {
-        newProject.id = "2d02db26-f814-4d36-ad7c-8d374bc540d4";
-      } else if (newProject.projectName === "Tom Company") {
-        newProject.id = "2d02db26-f814-4d36-ad7c-8d374bc540d5";
-        newProject.creationDate = "2019-01-05T13:59:59.424Z";
-      }
+      // if (newProject.projectNamee) {
+      //   newProject.projectName = newProject.projectNamee;
+      //   delete newProject.projectNamee;
+      // } else if (newProject.projectName === "Tom Company") {
+      //   newProject.creationDate = "2019-01-05T13:59:59.424Z";
+      // }
+      newProject.id = uuid();
       result.push(newProject);
     });
     return result;
@@ -134,21 +133,42 @@ function App() {
 
   // Specify that API is called once on page load
   useEffect(() => {
+    window.addEventListener("scroll", handleScroll, true);
+
+    // Remove the event listener
     const getProjects = async () => {
       const projectsFromServer = await fetchProjects();
-      const data = projectsFromServer.data;
-      const fixedData = fixData(data);
+      const fixedData = fixData(projectsFromServer);
       setProjects(fixedData);
     };
     getProjects();
+    return () => {
+      window.removeEventListener("scroll", handleScroll, true);
+    };
   }, []);
+
+  useEffect(() => {
+    const getAdditionalProjects = async () => {
+      const projectsFromServer = await fetchAdditionalProjects(page);
+      const fixedData = fixData(projectsFromServer);
+      setProjects((prev) => [...prev, ...fixedData]);
+    };
+    getAdditionalProjects();
+  }, [page]);
 
   // Fetch Projects
   const fetchProjects = async () => {
     const res = await fetch("http://localhost:3004/projects");
     const data = await res.json();
-    console.log("data", data);
-    return data;
+    const slicedData = data.data.slice(0, 40);
+    return slicedData;
+  };
+
+  const fetchAdditionalProjects = async (page) => {
+    const res = await fetch("http://localhost:3004/projects");
+    const data = await res.json();
+    const slicedData = data.data.slice((page - 1) * 40, page * 40);
+    return slicedData;
   };
 
   function handleChange(sortedType) {
@@ -166,6 +186,14 @@ function App() {
     });
     setProjects(sorted);
   }
+
+  const handleScroll = (e) => {
+    const { scrollTop, clientHeight, scrollHeight } = e.target.scrollingElement;
+    if (scrollHeight - scrollTop === clientHeight) {
+      setPage((prev) => prev + 1);
+    }
+  };
+
   let filteredProjects = filterProjects(projects, projectName);
   filteredProjects = filterByStatus(filteredProjects, status);
   // render App
@@ -191,7 +219,7 @@ function App() {
           Latest
         </Button>
       </div>
-      <div className="projects-content">
+      <div className="projects-content" onScroll={handleScroll}>
         {filteredProjects.map((project) => (
           <ProjectCard
             key={project.id}
