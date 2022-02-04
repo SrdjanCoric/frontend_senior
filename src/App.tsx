@@ -67,11 +67,31 @@ function App() {
 
   const classes = useStyles();
 
+  const fixData = (data: any) => {
+    let result: any = []
+    data.forEach((p: any) => {
+      let newProject = {...p}
+      if (newProject.projectNamee) {
+        newProject.projectName = newProject.projectNamee
+        delete newProject.projectNamee
+      } else if (newProject.projectName === "Hudson, Moore and Kub") {
+        newProject.id = "2d02db26-f814-4d36-ad7c-8d374bc540d4"
+      } else if (newProject.projectName === "Tom Company") {
+        newProject.id = "2d02db26-f814-4d36-ad7c-8d374bc540d5"
+        newProject.creationDate = "2019-01-05T13:59:59.424Z"
+      }
+      result.push(newProject)
+    })
+    return result;
+  }
+
   // Specify that API is called once on page load
   useEffect(() => {
     const getProjects = async () => {
       const projectsFromServer = await fetchProjects();
-      setProjects(projectsFromServer.data);
+      const data = projectsFromServer.data;
+      const fixedData = fixData(data)
+      setProjects(fixedData);
     };
     getProjects();
   }, []);
@@ -80,17 +100,17 @@ function App() {
   const fetchProjects = async () => {
     const res = await fetch("http://localhost:3004/projects");
     const data = await res.json();
-
+    console.log("data", data)
     return data;
   };
 
   function handleChange(sortedType: "earliest" | "latest") {
     const sorted = [...projects].sort((a, b) => {
       let date1 = new Date(a.creationDate);
-      let date2 = b.creationDate;
+      let date2 = new Date(b.creationDate);
 
       if (sortedType === "earliest") {
-        return new Date(date1).getTime() - date2.getTime();
+        return date1.getTime() - date2.getTime();
       } else if (sortedType === "latest") {
         return date2.getTime() - date1.getTime();
       } else {
@@ -122,7 +142,9 @@ function App() {
         </Button>
       </div>
       <div className="projects-content">
+      {console.log(projects)}
         {projects.map((project) => (
+
           <ProjectCard
             key={project.id}
             date={project.creationDate}
