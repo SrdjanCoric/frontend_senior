@@ -1,26 +1,22 @@
 import Button from "@material-ui/core/Button";
 import Card from "@material-ui/core/Card";
+import {
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Box,
+} from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import React, { useEffect, useState } from "react";
-interface ProjectItem {
-  creationDate: any;
-  projectName: any;
-  id: any;
-  status: string;
-}
 
 const useStyles = makeStyles({
   root: {
     margin: 10,
   },
 });
-
-interface CardProps {
-  date: any;
-  name: string;
-  status: string;
-}
 
 const useCardStyles = makeStyles({
   root: {
@@ -35,7 +31,40 @@ const useCardStyles = makeStyles({
   },
 });
 
-const ProjectCard: React.FC<CardProps> = ({ date, name, status }) => {
+const Search = ({ projectName, onSetProjectName }) => {
+  return (
+    <TextField
+      id="standard-basic"
+      margin="normal"
+      label="Insert project name"
+      variant="standard"
+      value={projectName}
+      onChange={(e) => onSetProjectName(e.target.value)}
+    />
+  );
+};
+
+const Status = ({ status, setStatus }) => {
+  return (
+    <Box sx={{ minWidth: 120 }}>
+      <FormControl fullWidth>
+        <InputLabel id="demo-simple-select-label">Status</InputLabel>
+        <Select
+          labelId="demo-simple-select-label"
+          id="demo-simple-select"
+          value={status}
+          label="Age"
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <MenuItem value={"lost"}>lost</MenuItem>
+          <MenuItem value={"won"}>won</MenuItem>
+        </Select>
+      </FormControl>
+    </Box>
+  );
+};
+
+const ProjectCard = ({ date, name, status }) => {
   const classes = useCardStyles();
   const toDate = new Date(date);
 
@@ -61,36 +90,54 @@ const ProjectCard: React.FC<CardProps> = ({ date, name, status }) => {
 };
 
 function App() {
-  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [projects, setProjects] = useState([]);
+  const [projectName, setProjectName] = useState("");
+  const [status, setStatus] = useState("");
   // const [sortedField, setSortedField] = useState<string>("");
   // let sortedProjects = [...projects];
 
   const classes = useStyles();
 
-  const fixData = (data: any) => {
-    let result: any = []
-    data.forEach((p: any) => {
-      let newProject = {...p}
+  const fixData = (data) => {
+    let result = [];
+    data.forEach((p) => {
+      let newProject = { ...p };
       if (newProject.projectNamee) {
-        newProject.projectName = newProject.projectNamee
-        delete newProject.projectNamee
+        newProject.projectName = newProject.projectNamee;
+        delete newProject.projectNamee;
       } else if (newProject.projectName === "Hudson, Moore and Kub") {
-        newProject.id = "2d02db26-f814-4d36-ad7c-8d374bc540d4"
+        newProject.id = "2d02db26-f814-4d36-ad7c-8d374bc540d4";
       } else if (newProject.projectName === "Tom Company") {
-        newProject.id = "2d02db26-f814-4d36-ad7c-8d374bc540d5"
-        newProject.creationDate = "2019-01-05T13:59:59.424Z"
+        newProject.id = "2d02db26-f814-4d36-ad7c-8d374bc540d5";
+        newProject.creationDate = "2019-01-05T13:59:59.424Z";
       }
-      result.push(newProject)
-    })
+      result.push(newProject);
+    });
     return result;
-  }
+  };
+
+  const filterProjects = (projects, name) => {
+    if (!name) {
+      return projects;
+    }
+    return projects.filter((p) =>
+      p.projectName.toLowerCase().startsWith(name.toLowerCase())
+    );
+  };
+
+  const filterByStatus = (projects, status) => {
+    if (!status) {
+      return projects;
+    }
+    return projects.filter((p) => p.status === status);
+  };
 
   // Specify that API is called once on page load
   useEffect(() => {
     const getProjects = async () => {
       const projectsFromServer = await fetchProjects();
       const data = projectsFromServer.data;
-      const fixedData = fixData(data)
+      const fixedData = fixData(data);
       setProjects(fixedData);
     };
     getProjects();
@@ -100,11 +147,11 @@ function App() {
   const fetchProjects = async () => {
     const res = await fetch("http://localhost:3004/projects");
     const data = await res.json();
-    console.log("data", data)
+    console.log("data", data);
     return data;
   };
 
-  function handleChange(sortedType: "earliest" | "latest") {
+  function handleChange(sortedType) {
     const sorted = [...projects].sort((a, b) => {
       let date1 = new Date(a.creationDate);
       let date2 = new Date(b.creationDate);
@@ -119,10 +166,13 @@ function App() {
     });
     setProjects(sorted);
   }
-
+  let filteredProjects = filterProjects(projects, projectName);
+  filteredProjects = filterByStatus(filteredProjects, status);
   // render App
   return (
     <div className="App">
+      <Search projectName={projectName} onSetProjectName={setProjectName} />
+      <Status status={status} setStatus={setStatus} />
       <div className="buttons-menu">
         <Button
           className={classes.root}
@@ -142,9 +192,7 @@ function App() {
         </Button>
       </div>
       <div className="projects-content">
-      {console.log(projects)}
-        {projects.map((project) => (
-
+        {filteredProjects.map((project) => (
           <ProjectCard
             key={project.id}
             date={project.creationDate}
